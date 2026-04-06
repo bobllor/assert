@@ -41,3 +41,17 @@ func Nil(t *testing.T, val any) {
 		t.Fatalf("%s: val is not nil (%v)", assertionErrStr, val)
 	}
 }
+
+// True asserts if the value is true.
+func True(t *testing.T, val bool) {
+	if !val {
+		t.Fatalf("%s: val is false", assertionErrStr)
+	}
+}
+
+// False asserts if the value is false.
+func False(t *testing.T, val bool) {
+	if val {
+		t.Fatalf("%s: val is false", assertionErrStr)
+	}
+}
