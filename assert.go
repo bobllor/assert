@@ -57,7 +57,7 @@ func True(t *testing.T, val bool) {
 // False asserts if the value is false.
 func False(t *testing.T, val bool) {
 	if val {
-		t.Fatalf("%s: val is false", assertionErrStr)
+		t.Fatalf("%s: val is true", assertionErrStr)
 	}
 }
 
