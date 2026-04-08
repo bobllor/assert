@@ -62,7 +62,24 @@ func TestAssertNilFail(t *testing.T) {
 	}
 }
 
-func TestAssertNilSpecial(t *testing.T) {
+func TestAssertNilAll(t *testing.T) {
+	var pp *int
+	var xd *string
+	var lp *struct{}
+
+	NilAll(t, pp, xd, lp)
+}
+
+func TestAssertNilAllFail(t *testing.T) {
+	mt := MockT{}
+	NilAll(&mt, "string")
+
+	if !mt.Contains(errNilFail) {
+		t.Fatal(failString, mt.Errors)
+	}
+}
+
+func TestAssertNilSpecialCases(t *testing.T) {
 	var pp *int
 	var ch chan string
 	var slice []string
@@ -144,6 +161,27 @@ func TestAssertNotNilPtr(t *testing.T) {
 
 	NotNil(t, v.Time)
 	NotNil(t, temp)
+}
+
+func TestAssertNotNilAll(t *testing.T) {
+	NotNilAll(t, "string", 123, 15.3, 'H', true, false)
+}
+
+func TestAssertNotNilAllPointers(t *testing.T) {
+	pp := 3
+	xd := "yes"
+	st := struct{}{}
+
+	NotNilAll(t, &pp, &xd, &st)
+}
+
+func TestAssertNotNilAllFail(t *testing.T) {
+	mt := MockT{}
+	NotNilAll(&mt, "fdsa", 123, nil)
+
+	if !mt.Contains(errNotNilFail) {
+		t.Fatal(failString, mt.Errors)
+	}
 }
 
 func TestAssertTrue(t *testing.T) {
