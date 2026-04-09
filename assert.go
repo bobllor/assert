@@ -8,12 +8,12 @@ import (
 )
 
 const (
-	errTrueFail     = "val is false"
-	errFalseFail    = "val is true"
+	errTrueFail     = "value is false"
+	errFalseFail    = "value is true"
 	errEqualFail    = "does not equal"
 	errNotEqualFail = "equals"
-	errNilFail      = "val is not nil"
-	errNotNilFail   = "val is nil"
+	errNilFail      = "value is not nil"
+	errNotNilFail   = "value is nil"
 )
 
 type Tester interface {
@@ -22,58 +22,102 @@ type Tester interface {
 }
 
 // Equal asserts if two values are equal to each other.
-func Equal(t Tester, valOne any, valTwo any) {
-	equal := reflect.DeepEqual(valOne, valTwo)
+func Equal(t Tester, v1 any, v2 any) {
+	equal := reflect.DeepEqual(v1, v2)
 	callerInfo := getCallerInfo()
 
 	if !equal {
-		t.Fatalf("%s: %v %s %v", callerInfo, errEqualFail, valOne, valTwo)
+		t.Fatalf("%s: %v %s %v", callerInfo, v1, errEqualFail, v2)
 	}
 }
 
 // NotEqual asserts if two values are not equal to each other.
-func NotEqual(t Tester, valOne any, valTwo any) {
-	equal := reflect.DeepEqual(valOne, valTwo)
+func NotEqual(t Tester, v1 any, v2 any) {
+	equal := reflect.DeepEqual(v1, v2)
 	callerInfo := getCallerInfo()
 
 	if equal {
-		t.Fatalf("%s: %v %s %v", callerInfo, errNotEqualFail, valOne, valTwo)
+		t.Fatalf("%s: %v %s %v", callerInfo, v1, errNotEqualFail, v2)
 	}
 }
 
 // Nil asserts if the value is nil.
-func Nil(t Tester, val any) {
+func Nil(t Tester, v any) {
 	callerInfo := getCallerInfo()
 
-	if !checkNil(val) {
-		t.Fatalf("%s: %s (%v)", callerInfo, errNilFail, val)
+	if !checkNil(v) {
+		t.Fatalf("%s: %s (%v)", callerInfo, errNilFail, v)
+	}
+}
+
+// NilAll asserts if all given values are nil.
+func NilAll(t Tester, vs ...any) {
+	callerInfo := getCallerInfo()
+
+	for _, v := range vs {
+		if !checkNil(v) {
+			t.Fatalf("%s: %s (%v)", callerInfo, errNilFail, v)
+		}
 	}
 }
 
 // NotNil asserts if the value is not nil.
-func NotNil(t Tester, val any) {
+func NotNil(t Tester, v any) {
 	callerInfo := getCallerInfo()
 
-	if checkNil(val) {
-		t.Fatalf("%s: %s (%v)", callerInfo, errNotNilFail, val)
+	if checkNil(v) {
+		t.Fatalf("%s: %s (%v)", callerInfo, errNotNilFail, v)
 	}
 }
 
-// True asserts if the value is true.
-func True(t Tester, val bool) {
+// NotNilAll asserts if all the given values are not nil.
+func NotNilAll(t Tester, vs ...any) {
 	callerInfo := getCallerInfo()
 
-	if !val {
+	for _, v := range vs {
+		if checkNil(v) {
+			t.Fatalf("%s: %s (%v)", callerInfo, errNotNilFail, v)
+		}
+	}
+}
+
+// True asserts if the condition is true.
+func True(t Tester, cond bool) {
+	callerInfo := getCallerInfo()
+
+	if !cond {
 		t.Fatalf("%s: %s", callerInfo, errTrueFail)
 	}
 }
 
-// False asserts if the value is false.
-func False(t Tester, val bool) {
+// TrueAll asserts if all conditions are true.
+func TrueAll(t Tester, conds ...bool) {
 	callerInfo := getCallerInfo()
 
-	if val {
+	for _, cond := range conds {
+		if !cond {
+			t.Fatalf("%s: %s", callerInfo, errTrueFail)
+		}
+	}
+}
+
+// False asserts if the condition is false.
+func False(t Tester, cond bool) {
+	callerInfo := getCallerInfo()
+
+	if cond {
 		t.Fatalf("%s: %s", callerInfo, errFalseFail)
+	}
+}
+
+// FalseAll asserts if all conditions are false.
+func FalseAll(t Tester, conds ...bool) {
+	callerInfo := getCallerInfo()
+
+	for _, cond := range conds {
+		if cond {
+			t.Fatalf("%s: %s", callerInfo, errFalseFail)
+		}
 	}
 }
 
