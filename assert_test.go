@@ -213,3 +213,43 @@ func TestAssertFalseFail(t *testing.T) {
 		t.Fatal(failString, mt.Errors)
 	}
 }
+
+func TestAssertContains(t *testing.T) {
+	str := "Lorem ipsum dolor sit amet, consectetur adipiscing elit"
+	substr := "consectetur adipiscing"
+
+	Contains(t, str, substr)
+}
+
+func TestAssertContainsAny(t *testing.T) {
+	str := "Lorem ipsum dolor sit amet, consectetur adipiscing elit"
+	substrings := []string{
+		"fdsa",
+		"h11",
+		"432",
+		"3333",
+		"amet",
+	}
+
+	ContainsAny(t, str, substrings...)
+}
+
+func TestAssertNotContains(t *testing.T) {
+	str := "Lorem ipsum"
+	substr := "Curious"
+
+	NotContains(t, str, substr)
+}
+
+func TestAssertNotContainsAny(t *testing.T) {
+	str := "Lorem ipsum dolor sit amet, consectetur adipiscing elit"
+	substrings := []string{
+		"fdsa",
+		"h11",
+		"432",
+		"3333",
+		"George",
+	}
+
+	NotContainsAny(t, str, substrings...)
+}

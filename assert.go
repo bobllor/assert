@@ -5,11 +5,12 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
+	"strings"
 )
 
 const (
-	errTrueFail     = "value is false"
-	errFalseFail    = "value is true"
+	errTrueFail     = "cond is false"
+	errFalseFail    = "cond is true"
 	errEqualFail    = "does not equal"
 	errNotEqualFail = "equals"
 	errNilFail      = "value is not nil"
@@ -121,6 +122,49 @@ func FalseAll(t Tester, conds ...bool) {
 	}
 }
 
+// Contains asserts if a string contains a substring.
+func Contains(t Tester, s string, substr string) {
+	callerInfo := getCallerInfo()
+
+	if !strings.Contains(s, substr) {
+		t.Fatalf("%s: substring '%s' not found in '%s'", callerInfo, substr, s)
+	}
+}
+
+// NotContains asserts if a string does not contain a substring.
+func NotContains(t Tester, s string, substr string) {
+	callerInfo := getCallerInfo()
+
+	if strings.Contains(s, substr) {
+		t.Fatalf("%s: substring '%s' found in '%s'", callerInfo, substr, s)
+	}
+}
+
+// ContainsAny asserts if any substring in substrings is found in the string.
+func ContainsAny(t Tester, s string, substrings ...string) {
+	callerInfo := getCallerInfo()
+
+	for _, substr := range substrings {
+		if strings.Contains(s, substr) {
+			return
+		}
+	}
+
+	t.Fatalf("%s: no substrings found in '%s'", callerInfo, s)
+}
+
+// NotContainsAny asserts if any substring in substrings is not found in the string.
+func NotContainsAny(t Tester, s string, substrings ...string) {
+	callerInfo := getCallerInfo()
+
+	for _, substr := range substrings {
+		if strings.Contains(s, substr) {
+			t.Fatalf("%s: substring '%s' found in '%s'", callerInfo, substr, s)
+		}
+	}
+
+}
+
 // checkNil checks if the value is nil.
 // It will return true if it is nil, otherwise return false.
 func checkNil(val any) bool {
@@ -168,12 +212,12 @@ func getCallerInfo() (callerStr string) {
 	pc, file, n, ok := runtime.Caller(skipLevel)
 
 	if !ok {
-		callerStr = "(caller retrieval unexpected error)"
+		callerStr = "caller retrieval could not be completed"
 	} else {
 		parentCaller := filepath.Base(runtime.FuncForPC(pc).Name())
 		fileName := filepath.Base(file)
 
-		callerStr = fmt.Sprintf("%s:%d (%s failed)", fileName, n, parentCaller)
+		callerStr = fmt.Sprintf("%s:%d (%s assertion failed)", fileName, n, parentCaller)
 	}
 
 	return callerStr
