@@ -5,15 +5,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
-)
-
-const (
-	errTrueFail     = "value is false"
-	errFalseFail    = "value is true"
-	errEqualFail    = "does not equal"
-	errNotEqualFail = "equals"
-	errNilFail      = "value is not nil"
-	errNotNilFail   = "value is nil"
+	"strings"
 )
 
 type Tester interface {
@@ -22,22 +14,22 @@ type Tester interface {
 }
 
 // Equal asserts if two values are equal to each other.
-func Equal(t Tester, v1 any, v2 any) {
-	equal := reflect.DeepEqual(v1, v2)
+func Equal(t Tester, v any, compare any) {
+	equal := reflect.DeepEqual(v, compare)
 	callerInfo := getCallerInfo()
 
 	if !equal {
-		t.Fatalf("%s: %v %s %v", callerInfo, v1, errEqualFail, v2)
+		t.Fatalf("%s: values are not equal (expected %v, got %v)", callerInfo, compare, v)
 	}
 }
 
 // NotEqual asserts if two values are not equal to each other.
-func NotEqual(t Tester, v1 any, v2 any) {
-	equal := reflect.DeepEqual(v1, v2)
+func NotEqual(t Tester, v any, compare any) {
+	equal := reflect.DeepEqual(v, compare)
 	callerInfo := getCallerInfo()
 
 	if equal {
-		t.Fatalf("%s: %v %s %v", callerInfo, v1, errNotEqualFail, v2)
+		t.Fatalf("%s: values are equal (%v == %v)", callerInfo, v, compare)
 	}
 }
 
@@ -46,7 +38,7 @@ func Nil(t Tester, v any) {
 	callerInfo := getCallerInfo()
 
 	if !checkNil(v) {
-		t.Fatalf("%s: %s (%v)", callerInfo, errNilFail, v)
+		t.Fatalf("%s: value is not nil (%v)", callerInfo, v)
 	}
 }
 
@@ -56,7 +48,7 @@ func NilAll(t Tester, vs ...any) {
 
 	for _, v := range vs {
 		if !checkNil(v) {
-			t.Fatalf("%s: %s (%v)", callerInfo, errNilFail, v)
+			t.Fatalf("%s: value is not nil (%v in %v)", callerInfo, v, vs)
 		}
 	}
 }
@@ -66,7 +58,7 @@ func NotNil(t Tester, v any) {
 	callerInfo := getCallerInfo()
 
 	if checkNil(v) {
-		t.Fatalf("%s: %s (%v)", callerInfo, errNotNilFail, v)
+		t.Fatalf("%s: value is nil", callerInfo, v)
 	}
 }
 
@@ -76,7 +68,7 @@ func NotNilAll(t Tester, vs ...any) {
 
 	for _, v := range vs {
 		if checkNil(v) {
-			t.Fatalf("%s: %s (%v)", callerInfo, errNotNilFail, v)
+			t.Fatalf("%s: value is nil (%v in %v)", callerInfo, v, vs)
 		}
 	}
 }
@@ -86,7 +78,7 @@ func True(t Tester, cond bool) {
 	callerInfo := getCallerInfo()
 
 	if !cond {
-		t.Fatalf("%s: %s", callerInfo, errTrueFail)
+		t.Fatalf("%s: got false condition", callerInfo)
 	}
 }
 
@@ -96,7 +88,7 @@ func TrueAll(t Tester, conds ...bool) {
 
 	for _, cond := range conds {
 		if !cond {
-			t.Fatalf("%s: %s", callerInfo, errTrueFail)
+			t.Fatalf("%s: got false condition (%v)", callerInfo, conds)
 		}
 	}
 }
@@ -106,7 +98,7 @@ func False(t Tester, cond bool) {
 	callerInfo := getCallerInfo()
 
 	if cond {
-		t.Fatalf("%s: %s", callerInfo, errFalseFail)
+		t.Fatalf("%s: got true condition", callerInfo)
 	}
 }
 
@@ -116,9 +108,52 @@ func FalseAll(t Tester, conds ...bool) {
 
 	for _, cond := range conds {
 		if cond {
-			t.Fatalf("%s: %s", callerInfo, errFalseFail)
+			t.Fatalf("%s: got true condition (%v)", callerInfo, conds)
 		}
 	}
+}
+
+// Contains asserts if a string contains a substring.
+func Contains(t Tester, s string, substr string) {
+	callerInfo := getCallerInfo()
+
+	if !strings.Contains(s, substr) {
+		t.Fatalf("%s: substring '%s' not found in '%s'", callerInfo, substr, s)
+	}
+}
+
+// NotContains asserts if a string does not contain a substring.
+func NotContains(t Tester, s string, substr string) {
+	callerInfo := getCallerInfo()
+
+	if strings.Contains(s, substr) {
+		t.Fatalf("%s: substring '%s' found in '%s'", callerInfo, substr, s)
+	}
+}
+
+// ContainsAny asserts if any substring in substrings is found in the string.
+func ContainsAny(t Tester, s string, substrings ...string) {
+	callerInfo := getCallerInfo()
+
+	for _, substr := range substrings {
+		if strings.Contains(s, substr) {
+			return
+		}
+	}
+
+	t.Fatalf("%s: no substrings found in '%s'", callerInfo, s)
+}
+
+// NotContainsAny asserts if any substring in substrings is not found in the string.
+func NotContainsAny(t Tester, s string, substrings ...string) {
+	callerInfo := getCallerInfo()
+
+	for _, substr := range substrings {
+		if strings.Contains(s, substr) {
+			t.Fatalf("%s: substring '%s' found in '%s'", callerInfo, substr, s)
+		}
+	}
+
 }
 
 // checkNil checks if the value is nil.
@@ -157,23 +192,23 @@ func checkNil(val any) bool {
 }
 
 // getCallerInfo returns the string containing the caller metadata in the format:
-// "<file>:<line> (<function name> failed)"
+// "<test file>:<line> (<function name> assertion failed)"
 // The metadata is to the main parent caller outside of assert.
 //
 // If the attempt in getting the caller information fails, then it will return
-// the string "(caller info failed)".
+// the string "caller retrieval could not be completed".
 func getCallerInfo() (callerStr string) {
 	// parent -> assert -> getCallerInfo (2 levels)
 	skipLevel := 2
 	pc, file, n, ok := runtime.Caller(skipLevel)
 
 	if !ok {
-		callerStr = "(caller retrieval unexpected error)"
+		callerStr = "caller retrieval could not be completed"
 	} else {
 		parentCaller := filepath.Base(runtime.FuncForPC(pc).Name())
 		fileName := filepath.Base(file)
 
-		callerStr = fmt.Sprintf("%s:%d (%s failed)", fileName, n, parentCaller)
+		callerStr = fmt.Sprintf("%s:%d (%s assertion failed)", fileName, n, parentCaller)
 	}
 
 	return callerStr
