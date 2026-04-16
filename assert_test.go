@@ -1,7 +1,6 @@
 package assert
 
 import (
-	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -12,37 +11,6 @@ const (
 	failString = "test assertion failed, expected failure but got passing"
 )
 
-type MockT struct {
-	Errors []string
-}
-
-// Contains checks if a substring is found in any of the strings
-// inside MockT.Errors.
-// If one is found, then return true, otherwise it will return false.
-func (m *MockT) Contains(substring string) bool {
-	for _, str := range m.Errors {
-		if strings.Contains(str, substring) {
-			return true
-		}
-	}
-
-	return false
-}
-
-// IsEmpty returns a bool if MockT.Errors is empty.
-// It will return true if it is empty, otherwise it will return false.
-func (m *MockT) IsEmpty() bool {
-	return len(m.Errors) == 0
-}
-
-func (m *MockT) Fatal(args ...any) {
-	m.Errors = append(m.Errors, fmt.Sprint(args...))
-}
-
-func (m *MockT) Fatalf(format string, args ...any) {
-	m.Errors = append(m.Errors, fmt.Sprintf(format, args...))
-}
-
 func TestAssertNil(t *testing.T) {
 	_, err := os.ReadDir(t.TempDir())
 	Nil(t, err)
@@ -50,14 +18,14 @@ func TestAssertNil(t *testing.T) {
 }
 
 func TestAssertNilFail(t *testing.T) {
-	mt := &MockT{}
+	mt := NewRecorder()
 
 	_, err := os.ReadDir("pathdoesnotexist/yes/no/maybeso")
 
 	Nil(mt, err)
 	Nil(mt, "string")
 
-	if !mt.Contains(errNilFail) {
+	if !mt.Contains("is not nil") {
 		t.Fatal(failString, mt.Errors)
 	}
 }
@@ -71,11 +39,12 @@ func TestAssertNilAll(t *testing.T) {
 }
 
 func TestAssertNilAllFail(t *testing.T) {
-	mt := MockT{}
-	NilAll(&mt, "string")
+	mt := NewRecorder()
+	NilAll(mt, "some string value here")
 
-	if !mt.Contains(errNilFail) {
+	if !mt.Contains("is not nil") {
 		t.Fatal(failString, mt.Errors)
+
 	}
 }
 
@@ -120,7 +89,7 @@ func TestAssertNilStruct(t *testing.T) {
 }
 
 func TestAssertNilPtrFail(t *testing.T) {
-	mt := &MockT{}
+	mt := NewRecorder()
 	i := 15
 	date := time.Now().UTC()
 	str := "string"
@@ -130,7 +99,7 @@ func TestAssertNilPtrFail(t *testing.T) {
 	Nil(mt, mt)
 	Nil(mt, &str)
 
-	if !mt.Contains(errNilFail) {
+	if !mt.Contains("is not nil") {
 		t.Fatal(failString, mt.Errors)
 	}
 }
@@ -176,10 +145,10 @@ func TestAssertNotNilAllPointers(t *testing.T) {
 }
 
 func TestAssertNotNilAllFail(t *testing.T) {
-	mt := MockT{}
-	NotNilAll(&mt, "fdsa", 123, nil)
+	mt := NewRecorder()
+	NotNilAll(mt, "fdsa", 123, nil)
 
-	if !mt.Contains(errNotNilFail) {
+	if !mt.Contains("is nil") {
 		t.Fatal(failString, mt.Errors)
 	}
 }
@@ -189,12 +158,27 @@ func TestAssertTrue(t *testing.T) {
 	True(t, strings.Contains(base, "sentence"))
 }
 
+func TestAssertTrueAll(t *testing.T) {
+	var z *int
+	TrueAll(t, 10 == 100/10, true, strings.Contains("test sentence", "test"), z == nil)
+}
+
 func TestAssertTrueFail(t *testing.T) {
-	mt := &MockT{}
+	mt := NewRecorder()
 
-	True(mt, false)
+	conditions := []bool{
+		false,
+		1 != 2-1,
+		strings.Contains("sentence", "z"),
+		len([]byte{1, 2, 3}) == 2,
+	}
 
-	if !mt.Contains(errTrueFail) {
+	for _, cond := range conditions {
+		True(mt, cond)
+	}
+
+	Equal(t, len(mt.Errors), len(conditions))
+	if !mt.ContainsAllErrors("false condition") {
 		t.Fatal(failString, mt.Errors)
 	}
 }
@@ -205,11 +189,11 @@ func TestAssertFalse(t *testing.T) {
 }
 
 func TestAssertFalseFail(t *testing.T) {
-	mt := &MockT{}
+	mt := NewRecorder()
 
 	False(mt, true)
 
-	if !mt.Contains(errFalseFail) {
+	if !mt.Contains("true condition") {
 		t.Fatal(failString, mt.Errors)
 	}
 }
@@ -219,6 +203,19 @@ func TestAssertContains(t *testing.T) {
 	substr := "consectetur adipiscing"
 
 	Contains(t, str, substr)
+}
+
+func TestAssertContainsFail(t *testing.T) {
+	str := "Lorem ipsum dolor sit amet, consectetur adipiscing elit"
+	substr := "xxx"
+
+	mt := NewRecorder()
+
+	Contains(mt, str, substr)
+
+	if !mt.Contains("not found in") {
+		t.Fatal(failString, mt.Errors)
+	}
 }
 
 func TestAssertContainsAny(t *testing.T) {
