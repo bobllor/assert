@@ -58,7 +58,7 @@ func NotNil(t Tester, v any) {
 	callerInfo := getCallerInfo()
 
 	if checkNil(v) {
-		t.Fatalf("%s: value is nil", callerInfo, v)
+		t.Fatalf("%s: value is nil", callerInfo)
 	}
 }
 
